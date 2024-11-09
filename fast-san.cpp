@@ -2,7 +2,6 @@
 #include "chess.hpp"
 #include <cstdint>
 #include <cstdlib>
-#include <exception>
 #include <string_view>
 bool rookMatch(const int &src, const int &target) {
   return (src / 8 == target / 8) || (src % 8 == target % 8);
@@ -101,7 +100,7 @@ chess::Move FastSAN::parseSan(chess::Board &board, std::string_view fen) {
     int srcRank;
     bool capture = false;
     int file, rank;
-    for (auto &chr : fen.substr(1, fen.length() - 1)) {
+    for (auto &chr : fen) {
       if (chr == 'x') {
         capture = true;
         continue;
@@ -109,13 +108,21 @@ chess::Move FastSAN::parseSan(chess::Board &board, std::string_view fen) {
         rank = chr - '1';
       } else if (chr < 'i' && chr >= 'a') {
         file = chr - 'a';
-        std::cout << file << std::endl << std::flush;
       }
-      if (!capture) {
+    }
+      if(capture){
+        srcRank = rank - direction;
+        target = file + rank * 8;
+        if(target == board.enpassantSq().index()){
+          type = chess::Move::ENPASSANT;
+        }
+        source = srcFile  + srcRank * 8;
+        return chess::Move(type + (source << 6) + target);
+      }
+      else {
         file = srcFile;
         bool needsCheck = (isWhite && rank == 3) || (!isWhite && rank == 4);
         if (needsCheck) {
-          std::cout << file << std::endl;
           if (board.at(file + 8 * (rank - direction)) ==
                   chess::Piece::WHITEPAWN ||
               board.at(file + 8 * (rank - direction)) ==
@@ -131,7 +138,6 @@ chess::Move FastSAN::parseSan(chess::Board &board, std::string_view fen) {
         target = file + rank * 8;
         return chess::Move((type) + (source << 6) + target);
       }
-    }
   }
 
   // PIECE MOVES
@@ -139,9 +145,10 @@ chess::Move FastSAN::parseSan(chess::Board &board, std::string_view fen) {
     char piece = fen[0];
     int tfile, trank, spos, tpos;
     int len = fen.size();
-    if (fen.find("+") != std::string_view::npos ||
-        fen.find("#") != std::string_view::npos) {
-      len--;
+    for(auto& chr : fen ){
+      if(chr == '+' || chr == '#' || chr == '!' || chr == '?'){
+        len--;
+      }
     }
     if (fen[1] == 'x') {
       if (len > 4) {
@@ -161,23 +168,28 @@ chess::Move FastSAN::parseSan(chess::Board &board, std::string_view fen) {
     chess::PieceType pieceType = parseType(piece);
     auto piecebb = getPieces(board, pieceType, isWhite);
 
-    while (!piecebb.empty()) {
+    int numResults = 0;
+    if(piecebb.count() == 1){
       spos = piecebb.pop();
-      std::cout << "TPOS " << tpos << std::endl;
-      std::cout << "SPOS " << spos << std::endl;
-      std::cout << "PIECE " << piece << std::endl;
-      if ((piece == 'N' && knightMatch(spos, tpos)) ||
-          (piece == 'B' && bishopMatch(spos, tpos)) ||
-          (piece == 'R' && rookMatch(spos, tpos)) ||
-          (piece == 'Q' &&
-           (bishopMatch(spos, tpos) || rookMatch(spos, tpos))) ||
-          (piece == 'K' && kingMatch(spos, tpos))) {
-
-            return chess::Move(tpos + (spos << 6));
+      numResults++;
+    }
+    while (!piecebb.empty()) {
+      int sq = piecebb.pop();
+      if ((piece == 'N' && knightMatch(sq, tpos)) ||
+          (piece == 'B' && bishopMatch(sq, tpos)) ||
+          (piece == 'R' && rookMatch(sq, tpos)) ||
+          (piece == 'Q' && queenMatch(sq, tpos)) ||
+          (piece == 'K' && kingMatch(sq, tpos))) {
+            
+            numResults++;
+            spos = sq;
 
       }
     }
-    // We shouldn't be here..
-    throw std::exception();
+    if(numResults == 1){
+      return chess::Move(tpos + (spos << 6));
+    }
+    return chess::uci::parseSan(board, fen);
   }
+  return chess::uci::parseSan(board, fen);
 }
