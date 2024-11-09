@@ -3,5 +3,5 @@
 #include <string_view>
 
 namespace FastSAN{
-    void parseSAN(chess::Board& board, chess::Move& move, std::string_view fen);
+chess::Move parseSan(chess::Board& board, std::string_view fen);
 }
