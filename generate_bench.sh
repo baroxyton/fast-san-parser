@@ -1,0 +1,1 @@
+curl https://database.lichess.org/standard/lichess_db_standard_rated_2024-03.pgn.zst |zstdcat | grep '1\.' | sed 's/{[^}]*}\ [0-9]*\.*//g' | sed s/[0-9][0-9]//g | sed 's/\s[0-9]/ /g' | tr -s ' ' | cut -d' ' -f2- | rev | cut -d ' ' -f 2- | rev | sed 's/\.\ //g' > bench_games.txt
