@@ -13,8 +13,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 FetchContent_Declare(
     chess_lib
-    GIT_REPOSITORY https://github.com/Disservin/chess-library
-    GIT_TAG master
+    GIT_REPOSITORY https://github.com/baroxyton/chess-library
+    GIT_TAG noassert_128bhash
 )
 
 FetchContent_MakeAvailable(chess_lib)
